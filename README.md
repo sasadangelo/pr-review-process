@@ -1,194 +1,114 @@
-# 🧱 Python Blueprint
+# AI-Powered PR Review
 
-A modern, opinionated starting point for new Python projects — with enforced Python versioning, reproducible environments, automated dependency management, and a robust pre-commit setup.
+This is a minimal MVP for an **AI-powered Pull Request review system**.
+It uses **FastAPI** to receive GitHub webhook events and can be connected to an AI model to generate automatic code review comments.
 
-Setting up a new Python project can take time. You must decide:
+## Features
 
-- Which Python version to use
-- How to manage dependencies and virtual environments
-- Which code-quality tools to include
-- How to ensure consistent environments across developers
+- Receive GitHub **Pull Request webhook events**
+- Filter relevant events (`opened` and `synchronize`)
+- Extract key information from the PR:
+  - PR number
+  - Repository full name
+  - Head SHA
+- Ready to integrate with AI models for automatic code review
+- Logs all PR events in English for easy debugging
 
-**Python Blueprint** solves all that for you — providing a clean, production-ready starting point with zero friction.
+## Getting Started
 
----
-
-## 🚀 Key Design Principles
-
-### 🐍 Python Version Enforcement
-
-Not all Python versions are compatible. Features in newer versions may break on older interpreters.
-`uv` ensures that your project always runs on the expected Python version, preventing runtime surprises.
-
-### 🌱 Virtual Environment Management
-
-Each project runs in an isolated environment to avoid dependency conflicts.
-While `pip` requires manual setup (`venv` or `virtualenv`), **`uv` automatically manages virtual environments**, ensuring consistent environments across all machines.
-
-### 🔁 Reproducible Environments
-
-The “works on my machine” problem is real.
-`uv` maintains a lockfile that freezes exact dependency versions, making your builds reproducible across development, CI, and production.
-
-### 📦 Dependency Management
-
-You can choose to list only direct dependencies or lock all transitive ones.
-Python Blueprint opts for **locked dependencies** — ensuring deterministic builds while simplifying collaboration and CI integration.
-
-### 🧰 Development Tool Integration
-
-Beyond dependencies, a solid setup integrates **linters**, **type checkers**, and **security tools**.
-Consistent tooling across the team helps maintain code quality, prevent secret leaks, and enforce coding standards.
-
-### 🧩 Separate Development & Production Dependencies
-
-Only install what you need in production.
-Development dependencies (testing, linting, formatting) are isolated from runtime requirements, reducing deployment size and improving security.
-
-### 🚢 Packaging & Distribution
-
-Python Blueprint is ready for packaging.
-You can easily build and publish your code as an internal package or to public repositories like **PyPI**, ensuring smooth scaling as your project grows.
-
----
-
-## 🧰 Pre-commit Hooks
-
-The project comes with a full **`.pre-commit-config.yaml`** that enforces code hygiene and security before every commit.
-
-| Tool                                           | Purpose                                         |
-| ---------------------------------------------- | ----------------------------------------------- |
-| **check-yaml, check-json, check-toml**         | Validate syntax for config files                |
-| **check-ast**                                  | Ensure Python files are syntactically correct   |
-| **end-of-file-fixer**, **trailing-whitespace** | Keep files clean and consistent                 |
-| **pyupgrade**                                  | Modernize syntax automatically (`--py310-plus`) |
-| **black**                                      | Enforce consistent code formatting              |
-| **isort**                                      | Sort and group imports properly                 |
-| **flake8**                                     | Detect code smells and style violations         |
-| **mypy**                                       | Perform static type checking                    |
-| **bandit**                                     | Identify common security vulnerabilities        |
-| **detect-secrets**                             | Prevent accidental secret leaks                 |
-| **prettier**                                   | Format Markdown, YAML, and JSON files           |
-
-Together, these hooks ensure that every commit meets your team’s standards before it ever reaches the repository.
-
----
-
-## ⚙️ Setup
-
-### 1️⃣ Clone the Repository
+### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-org/python-blueprint.git
-cd python-blueprint
+git clone https://github.com/yourusername/pr-review-process.git
+cd pr-review-process
 ```
 
-### 2️⃣ Install Python 3.14
+2. Set up virtual environment and Install dependencies
 
 ```bash
-uv python install 3.14
-uv python pin 3.14  # pins this version for the project
+uv sync
 ```
 
-### 2️⃣ Sync Dependencies with uv
-
-This creates and activates a virtual environment automatically, installing all development dependencies (linters, formatters, type checkers, test tools, etc.).
+3. Start the FastAPI server
 
 ```bash
-uv sync --group dev
+uv run src/app.sh
 ```
 
-### 3️⃣ Run the Project
+By default, the app runs on http://localhost:8000.
+
+1. Expose your local server with ngrok
 
 ```bash
-uv run python -m python_blueprint.hello
+ngrok http 8000
 ```
 
-Expected output:
+Copy the HTTPS URL provided by ngrok to use as your GitHub webhook URL.
 
-```bash
-Hello, Python Blueprint! 👋
-```
+Example:
 
-### 4️⃣ Run Tests
+https://abc123.ngrok-free.app/github/webhook
 
-All tests are located under tests/ and automatically discovered by pytest.
 
-```bash
-uv run pytest tests
-```
+6. Configure GitHub Webhook
+Go to your repository: Settings → Webhooks → Add webhook
 
-To check the coverage you can run:
+Payload URL: https://<ngrok-hostname>/github/webhook
 
-```bash
-uv run coverage run -m pytest
-uv run coverage report
-```
+Content type: application/json
 
-### 🧪 Running Tools Manually
+Events: select Pull requests
 
-Run individual tools via uv run:
+Save
 
-```bash
-uv run black src tests/
-uv run flake8 src tests
-uv run isort src tests/
-uv run mypy src
-uv run bandit -r src
-uv run detect-secrets scan
-```
+Now your FastAPI app will receive PR events from GitHub.
 
-You can also run the full pre-commit suite manually:
+7. How to Test
+Using GitHub
+Open or update a PR
 
-```bash
-pre-commit run --all-files
-```
+Check the terminal where FastAPI runs for logs:
 
-### 🧭 Folder Structure
+=== GitHub Pull Request Event ===
+Action: opened
+Repository: sasadangelo/pr-review-process
+PR Number: 12
+Head SHA: abc123def456
+===============================
 
-```
-python-blueprint/
-├── .vscode/               # Visual Studio Code configuration
-│   └── launch.json
-│   └── settings.json
-├── src/                   # Main source code
-│   └── __init__.py
-│   └── hello.py           # Example entrypoint
-│
-├── tests/                 # Unit and integration tests
-│   └── test_hello.py
-│
-├── pyproject.toml         # Project metadata and dependencies
-├── uv.lock                # Dependency lockfile (reproducible builds)
-├── .pre-commit-config.yaml # Code hygiene tools
-├── .gitignore
-├── LICENSE
-└── README.md
-```
+Using curl
+curl -X POST https://<ngrok-hostname>/github/webhook \
+     -H "Content-Type: application/json" \
+     -d '{"action":"opened","number":1,"repository":{"full_name":"sasadangelo/pr-review-process"},"pull_request":{"head":{"sha":"abc123"}}}'
 
-### 🧠 Why uv?
+8. Next Steps (MVP)
+Fetch the full diff of the PR using GitHub API
 
-**uv** is the next-generation Python package manager. It replaces pip + venv + pip-tools with a single, fast, deterministic tool that:
+Load internal knowledge from .ai/ folder
 
-- Automatically creates and activates virtual environments
-- Enforces Python version consistency
-- Provides blazing-fast dependency resolution and installs
-- Supports separate groups (main, development, docs, etc.)
-- Integrates seamlessly with pyproject.toml
+Build prompt for AI model
 
-### 🧩 License
+Generate automatic code review comments and post them back to GitHub
 
-MIT License © 2025 Salvatore D'Angelo / Code4Projects
+9. Project Structure
+pr-review-process/
+├─ src/
+│  └─ app.py          # FastAPI webhook
+├─ .ai/               # Knowledge base for AI
+├─ app.sh             # Script to start the server
+├─ pyproject.toml     # Project dependencies and dev tools
+└─ README.md
 
-### ✨ Summary
+10. Dependencies
+Python >= 3.10
 
-Python Blueprint helps you:
+FastAPI
 
-- Start new Python projects in seconds
-- Enforce consistent environments and code quality
-- Integrate best practices for security and maintainability
-- Focus on building, not on boilerplate
+Uvicorn
 
-### 💡 Stop spending hours setting up your project.
+Requests
 
-Start coding in minutes — with Python Blueprint.
+Pre-commit hooks (black, isort, flake8, etc.)
+
+11. License
+MIT License
