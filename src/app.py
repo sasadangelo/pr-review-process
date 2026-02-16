@@ -41,5 +41,4 @@ async def github_webhook(req: Request):
         print(f"URL: {pr_url}")
         print(f"Branches: {pr_branch_head} → {pr_branch_base}")
         print(f"Changes: +{pr_additions}/-{pr_deletions} in {pr_changed_files} files")
-
     return {"ok": True}
